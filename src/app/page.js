@@ -161,16 +161,12 @@ export default async function Home({ searchParams }) {
 
   return (
     <>
- 
       <header className="w-full bg-[linear-gradient(90deg,#A6080E_0%,#D11101_100%)] px-4 md:px-8 py-2 flex items-center justify-between">
         <img
           src="./img/logo.svg"
           alt="Meridianbet"
           className="h-6 md:h-7 w-auto"
         />
-
-
-    
       </header>
 
       {/* MAIN CONTENT */}
@@ -199,7 +195,7 @@ export default async function Home({ searchParams }) {
           "
         >
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white md:text-left text-center">
-            Promotion Calendar
+            Promotions Calendar
           </h1>
 
           {isAdmin && (

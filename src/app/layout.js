@@ -1,4 +1,4 @@
-import { Roboto, Roboto_Condensed} from "next/font/google";
+import { Roboto, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 
@@ -14,35 +14,35 @@ const robotoCondensed = Roboto_Condensed({
 });
 
 export const metadata = {
-  metadataBase: new URL("https://meridianbet.co.tz"),
-  title: "Kalenda ya Promosheni | Meridianbet",
+  metadataBase: new URL("https://calendar.meridianbet.com"),
+  title: "Promotions Calendar | Meridianbet",
   description:
-    "Endelea kufahamu ofa za kila siku, gundua promosheni mpya na ufurahie zawadi za kipekee kupitia Kalenda ya Promosheni ya Meridianbet.",
+    "Stay up to date with daily offers, discover new promotions, and enjoy exclusive rewards through the Meridianbet Promotions Calendar.",
   alternates: {
-    canonical: "/calendar",
+    canonical: "/",
   },
   openGraph: {
-    title: "Kalenda ya Promosheni | Meridianbet",
+    title: "Promotions Calendar | Meridianbet",
     description:
-      "Endelea kufahamu ofa za kila siku, gundua promosheni mpya na ufurahie zawadi za kipekee kupitia Kalenda ya Promosheni ya Meridianbet.",
-    url: "/calendar",
+      "Stay up to date with daily offers, discover new promotions, and enjoy exclusive rewards through the Meridianbet Promotions Calendar.",
+    url: "/",
     siteName: "Meridianbet",
     images: [
       {
         url: "https://cloud.merbet.com/Preview-image/calendar-universal.png",
         width: 1200,
         height: 630,
-        alt: "Kalenda ya Promosheni",
+        alt: "Promotions Calendar",
       },
     ],
-    locale: "sw_TZ",
+    locale: "en_MT",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kalenda ya Promosheni | Meridianbet",
+    title: "Promotions Calendar | Meridianbet",
     description:
-      "Endelea kufahamu ofa za kila siku, gundua promosheni mpya na ufurahie zawadi za kipekee kupitia Kalenda ya Promosheni ya Meridianbet.",
+      "Stay up to date with daily offers, discover new promotions, and enjoy exclusive rewards through the Meridianbet Promotions Calendar.",
     images: ["https://cloud.merbet.com/Preview-image/calendar-universal.png"],
   },
   robots: {
@@ -54,12 +54,9 @@ export const metadata = {
   },
 };
 
-
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-        
       <body
         className={`${roboto.variable} ${robotoCondensed.variable} min-h-screen`}
       >
