@@ -1,13 +1,10 @@
 "use client";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import RichEditor from "@/components/RichEditor";
+import RichEditor from "@/components/admin-shared/RichEditor";
 import ImageGalleryModal from "../../components/ImageGalleryModal";
-
-// jezici za tabove
-const LANGS = [
-  { code: "en", label: "English" },
-];
+import { monthHref } from "@/lib/calendar/calendarUrls";
+import { LANG } from "@/lib/market";
 
 // kategorije za promo
 const CATEGORIES = [
@@ -15,6 +12,7 @@ const CATEGORIES = [
   { value: "CASINO", label: "Casino" },
   { value: "MISSIONS", label: "Missions" },
   { value: "ALL", label: "All" },
+  { value: "GOLD", label: "Golden Ball" },
 ];
 
 // yyyy-mm-dd ⇄ {year, month(0-11), day}
@@ -38,10 +36,9 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
     const d = initial?.day ?? now.getDate();
 
     const baseTranslations = initial?.translations || {};
-    const mainLang = LANGS[0].code; // "pt"
 
-    if (!baseTranslations[mainLang]) {
-      baseTranslations[mainLang] = {
+    if (!baseTranslations[LANG]) {
+      baseTranslations[LANG] = {
         title: initial?.title ?? "",
         button: initial?.button ?? "",
         rich: initial?.rich ?? null,
@@ -59,16 +56,19 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
 
       icon: initial?.icon ?? "",
       active: initial?.active ?? true,
+      scratch: !!initial?.scratch,
       buttonColor: initial?.buttonColor ?? "green",
 
       translations: baseTranslations,
+
       category: initial?.category || "ALL",
+      knockoutPhase: initial?.knockoutPhase || null,
     };
   }, [initial]);
 
   const [form, setForm] = useState(seed);
   const [saving, setSaving] = useState(false);
-  const [activeLang, setActiveLang] = useState(LANGS[0].code);
+  const activeLang = LANG;
   const [showIconGallery, setShowIconGallery] = useState(false);
 
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
@@ -95,7 +95,7 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
     const m =
       typeof form.month === "number" ? form.month : new Date().getMonth();
 
-    const url = `/?y=${y}&m=${m}`;
+    const url = monthHref(y, m);
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
@@ -140,6 +140,7 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
         link: mainLink,
 
         active: !!form.active,
+        scratch: !!form.scratch,
         buttonColor: form.buttonColor || "green",
 
         translations,
@@ -150,6 +151,7 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
         rich: mainT.rich || null,
         richHtml: mainT.richHtml || "",
         category: form.category || "ALL",
+        knockoutPhase: form.knockoutPhase || null,
       };
 
       const res = await fetch(url, {
@@ -210,26 +212,6 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
       </div>
 
       <div className="mt-6 bg-white border border-neutral-200 rounded-lg shadow-sm p-4 md:p-5 space-y-5">
-        {/* Tabs + Active */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
-          <div className="flex items-center gap-2">
-            {LANGS.map((lng) => (
-              <button
-                key={lng.code}
-                type="button"
-                onClick={() => setActiveLang(lng.code)}
-                className={`px-3 py-1.5 text-xs border-b-2 ${
-                  activeLang === lng.code
-                    ? "border-[#AC1C09] text-[#AC1C09] font-semibold"
-                    : "border-transparent text-neutral-600 hover:text-neutral-900"
-                }`}
-              >
-                {lng.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Active toggle + Preview */}
         <div className="pb-2">
           <label className="flex items-center justify-between gap-2 text-sm text-neutral-800">
@@ -275,12 +257,22 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
           </label>
         </div>
 
+        {/* Scratch toggle */}
+        <div className="pb-2">
+          <label className="flex items-center gap-2 text-sm text-neutral-800">
+            <input
+              type="checkbox"
+              checked={!!form.scratch}
+              onChange={(e) => set("scratch", e.target.checked)}
+            />
+            Enable scratch card
+          </label>
+        </div>
+
         {/* Title + Date */}
         <div className="grid md:grid-cols-2 gap-4 text-neutral-800">
           <label className="block">
-            <span className="text-sm mb-1 inline-block">
-              Title ({activeLang.toUpperCase()})
-            </span>
+            <span className="text-sm mb-1 inline-block">Title</span>
             <input
               className="w-full border border-[#D0D0D0] rounded px-2.5 py-1.5 text-sm"
               value={currentT.title || ""}
@@ -318,9 +310,7 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
         {/* Button label + Button link + Button Color */}
         <div className="grid gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_auto] items-end">
           <label className="block text-sm text-neutral-800">
-            <span className="mb-1 inline-block">
-              Button label ({activeLang.toUpperCase()})
-            </span>
+            <span className="mb-1 inline-block">Button label</span>
             <input
               className="w-full border border-[#D0D0D0] rounded px-2.5 py-1.5 text-sm"
               value={currentT.button || ""}
@@ -331,9 +321,7 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
           </label>
 
           <label className="block text-sm text-neutral-800">
-            <span className="mb-1 inline-block">
-              Button link ({activeLang.toUpperCase()})
-            </span>
+            <span className="mb-1 inline-block">Button link</span>
             <input
               className="w-full border border-[#D0D0D0] rounded px-2.5 py-1.5 text-sm"
               value={currentT.link || ""}
@@ -414,6 +402,39 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
           </div>
         </div>
 
+        {/* Knockout phase */}
+        <div className="mt-2">
+          <span className="mb-1 inline-block text-sm text-neutral-800">
+            Knockout phase{" "}
+            <span className="text-neutral-400 font-normal">(combined with the category)</span>
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: null, label: "None" },
+              { value: "QUARTER_FINAL", label: "⚽ Quarter-final (1/4)" },
+              { value: "SEMI_FINAL", label: "⚽ Semi-final (1/2)" },
+              { value: "FINAL", label: "🏆 Final" },
+            ].map((opt) => {
+              const selected = (form.knockoutPhase || null) === opt.value;
+              return (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  onClick={() => set("knockoutPhase", opt.value)}
+                  className={
+                    "px-3 py-1 rounded-full text-[11px] font-medium border transition " +
+                    (selected
+                      ? "bg-[#17BB00] text-white border-[#17BB00]"
+                      : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100")
+                  }
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Icon */}
         <div className="mt-3">
           <label className="block text-sm text-neutral-800">
@@ -464,9 +485,7 @@ export default function SpecialEditor({ initial, onCancel, onSaved }) {
 
         {/* Rich text editor */}
         <div>
-          <span className="text-sm text-neutral-800 block mb-1.5">
-            Description ({activeLang.toUpperCase()})
-          </span>
+          <span className="text-sm text-neutral-800 block mb-1.5">Description</span>
           <div className="border border-[#D0D0D0] rounded">
             <RichEditor
               key={activeLang}

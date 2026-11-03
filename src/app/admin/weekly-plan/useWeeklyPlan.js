@@ -15,7 +15,7 @@ export function useWeeklyPlan(year, month) {
     fetch(`/api/weekly-plan?year=${year}&month=${month}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then(setRows)
-      .catch(() => setError("Ne mogu da učitam plan"))
+      .catch(() => setError("Could not load the plan"))
       .finally(() => setLoading(false));
   }, [year, month]);
 
@@ -45,7 +45,7 @@ export function useWeeklyPlan(year, month) {
     });
 
     if (!res.ok) {
-      toast.error("Greška pri snimanju");
+      toast.error("Error while saving");
       return;
     }
 
@@ -55,6 +55,22 @@ export function useWeeklyPlan(year, month) {
       return [...other, saved].sort((a, b) => a.weekday - b.weekday);
     });
     toast.success("Success!");
+  }
+
+  async function bulkToggle(active) {
+    const prev = rows;
+    setRows((current) => current.map((r) => ({ ...r, active })));
+    const res = await fetch("/api/weekly-plan", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ year, month, active }),
+    });
+    if (!res.ok) {
+      setRows(prev);
+      toast.error("Error!");
+    } else {
+      toast.success(active ? "All activated." : "All deactivated.");
+    }
   }
 
   async function remove(weekday) {
@@ -67,9 +83,9 @@ export function useWeeklyPlan(year, month) {
     });
     if (!res.ok && res.status !== 204) {
       setRows(prev);
-      toast.error("Greška pri brisanju");
+      toast.error("Error while deleting");
     }
   }
 
-  return { rows, loading, error, upsert, remove };
+  return { rows, loading, error, upsert, remove, bulkToggle };
 }

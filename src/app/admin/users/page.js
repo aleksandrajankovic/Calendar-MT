@@ -16,6 +16,8 @@ export default function AdminUsersPage() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [resetId, setResetId] = useState(null);
+  const [resetPwd, setResetPwd] = useState("");
 
   // ucitavanje liste admina
   useEffect(() => {
@@ -145,6 +147,43 @@ export default function AdminUsersPage() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to update admin.");
+    }
+  }
+
+  function startReset(admin) {
+    cancelEdit();
+    setResetId(admin.id);
+    setResetPwd("");
+  }
+
+  function cancelReset() {
+    setResetId(null);
+    setResetPwd("");
+  }
+
+  async function saveReset(id) {
+    if (resetPwd.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: resetPwd }),
+      });
+
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+
+      toast.success("Password changed. Send the new password to the user.");
+      cancelReset();
+    } catch (err) {
+      console.error(err);
+      toast.error(`Failed to reset password. ${err.message || ""}`);
     }
   }
 
@@ -293,6 +332,7 @@ export default function AdminUsersPage() {
                 <tbody>
                   {admins.map((a) => {
                     const isEditing = editingId === a.id;
+                    const isResetting = resetId === a.id;
                     return (
                       <tr
                         key={a.id}
@@ -360,6 +400,32 @@ export default function AdminUsersPage() {
                                 Cancel
                               </button>
                             </div>
+                          ) : isResetting ? (
+                            <div className="flex flex-wrap gap-2">
+                              <input
+                                type="password"
+                                className="w-40 border border-slate-300 rounded px-2 py-1 text-sm"
+                                placeholder="New password (min 8)"
+                                value={resetPwd}
+                                onChange={(e) => setResetPwd(e.target.value)}
+                                autoComplete="new-password"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => saveReset(a.id)}
+                                className="text-xs px-3 py-1 rounded bg-[var(--green-primary)] text-white hover:brightness-110"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelReset}
+                                className="text-xs px-3 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           ) : (
                             <div className="flex gap-2">
                               <button
@@ -368,6 +434,13 @@ export default function AdminUsersPage() {
                                 className="text-xs px-3 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
                               >
                                 Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => startReset(a)}
+                                className="text-xs px-3 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                              >
+                                Reset password
                               </button>
                               <button
                                 type="button"

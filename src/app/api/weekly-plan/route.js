@@ -1,31 +1,17 @@
 // src/app/api/weekly-plan/route.js
 export const runtime = "nodejs";
+
+import { revalidateTag } from "next/cache";
 import prisma from "@/lib/db";
+import { getAdminFromRequest } from "@/lib/auth";
+import { sanitizeRichHtml, sanitizeTranslations } from "@/lib/sanitize";
+import { sanitizeLink } from "@/lib/validate";
 
 const DEFAULT_LANG = "pt";
 
-// helper: pročitaj ID admina iz cookie-ja
-function getAdminIdFromCookie(req) {
-  const cookieHeader = req.headers.get("cookie") || "";
-  const match = cookieHeader.match(/admin_auth=(\d+)/);
-  if (!match) return null;
-  return Number(match[1]);
-}
-
-// helper: dozvoli BILO KOG admina
-function requireAnyAdmin(req) {
-  const adminId = getAdminIdFromCookie(req);
-  if (!adminId) {
-    return { ok: false, status: 401 };
-  }
-  return { ok: true, adminId };
-}
-
-// GET /api/weekly-plan?year=YYYY&month=MM
-// ovo je ok da ostane public, za front
+// GET /api/weekly-plan?year=YYYY&month=MM — public, za front
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-
   const year = Number.parseInt(searchParams.get("year") ?? "", 10);
   const month = Number.parseInt(searchParams.get("month") ?? "", 10);
 
@@ -41,39 +27,49 @@ export async function GET(req) {
   return Response.json(rows);
 }
 
-// PUT /api/weekly-plan  (upsert jedne stavke)
-export async function PUT(req) {
-  const { ok, status } = requireAnyAdmin(req);
-  if (!ok) return new Response("unauthorized", { status });
+// PATCH /api/weekly-plan — bulk activate/deactivate svih dana u mesecu
+export async function PATCH(req) {
+  const session = await getAdminFromRequest(req);
+  if (!session) return new Response("unauthorized", { status: 401 });
 
   const body = await req.json().catch(() => ({}));
+  const year = Number.parseInt(body.year, 10);
+  const month = Number.parseInt(body.month, 10);
+  const { active } = body;
 
+  if (!Number.isInteger(year) || !Number.isInteger(month) || typeof active !== "boolean") {
+    return new Response("bad payload", { status: 400 });
+  }
+
+  const { count } = await prisma.weeklyPlan.updateMany({
+    where: { year, month },
+    data: { active },
+  });
+
+  revalidateTag("calendar");
+  return Response.json({ updated: count });
+}
+
+export async function PUT(req) {
+  const session = await getAdminFromRequest(req);
+  if (!session) return new Response("unauthorized", { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
   const year = Number.parseInt(body.year, 10);
   const month = Number.parseInt(body.month, 10);
   const weekday = Number.parseInt(body.weekday, 10);
 
   if (
     ![year, month, weekday].every(Number.isInteger) ||
-    weekday < 0 ||
-    weekday > 6
+    weekday < 0 || weekday > 6
   ) {
     return new Response("Bad payload", { status: 400 });
   }
 
   const {
-    icon,
-    link,
-    buttonColor,
-    active,
-
-    title,
-    button,
-    rich,
-    richHtml,
-
-    translations: rawTranslations,
-    defaultLang,
-    category,
+    icon, link, buttonColor, active, scratch,
+    title, button, rich, richHtml,
+    translations: rawTranslations, defaultLang, category,
   } = body;
 
   const translations = rawTranslations || {};
@@ -81,21 +77,17 @@ export async function PUT(req) {
   const mainT = translations[mainLang] || {};
 
   const data = {
-    year,
-    month,
-    weekday,
-
+    year, month, weekday,
     title: mainT.title ?? title ?? "",
     button: mainT.button ?? button ?? "",
     rich: mainT.rich ?? rich ?? null,
-    richHtml: mainT.richHtml ?? richHtml ?? null,
-    link: mainT.link ?? link ?? "",
-
+    richHtml: sanitizeRichHtml(mainT.richHtml ?? richHtml ?? null),
+    link: sanitizeLink(mainT.link ?? link ?? ""),
     icon: icon ?? null,
     active: Boolean(active ?? true),
+    scratch: !!scratch,
     buttonColor: buttonColor || "green",
-
-    translations: Object.keys(translations).length ? translations : null,
+    translations: sanitizeTranslations(translations),
     category: category || "ALL",
   };
 
@@ -105,13 +97,13 @@ export async function PUT(req) {
     update: data,
   });
 
+  revalidateTag("calendar");
   return Response.json(row);
 }
 
-// DELETE /api/weekly-plan
 export async function DELETE(req) {
-  const { ok, status } = requireAnyAdmin(req);
-  if (!ok) return new Response("unauthorized", { status });
+  const session = await getAdminFromRequest(req);
+  if (!session) return new Response("unauthorized", { status: 401 });
 
   const body = await req.json().catch(() => ({}));
   const year = Number.parseInt(body.year, 10);
@@ -120,8 +112,7 @@ export async function DELETE(req) {
 
   if (
     ![year, month, weekday].every(Number.isInteger) ||
-    weekday < 0 ||
-    weekday > 6
+    weekday < 0 || weekday > 6
   ) {
     return new Response("Bad payload", { status: 400 });
   }
@@ -134,5 +125,6 @@ export async function DELETE(req) {
     // ako ne postoji, i dalje vraćamo 204
   }
 
+  revalidateTag("calendar");
   return new Response(null, { status: 204 });
 }

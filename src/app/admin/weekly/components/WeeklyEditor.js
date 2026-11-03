@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import RichEditor from "@/components/RichEditor";
+import RichEditor from "@/components/admin-shared/RichEditor";
 import ImageGalleryModal from "../../components/ImageGalleryModal";
+import { monthHref } from "@/lib/calendar/calendarUrls";
+import { LANG } from "@/lib/market";
 
 const LABELS = [
   "Monday",
@@ -15,24 +17,24 @@ const LABELS = [
   "Sunday",
 ];
 
-// jezici za tabove
-const LANGS = [{ code: "en", label: "English" }];
-
 // kategorije za promo
 const CATEGORIES = [
   { value: "SPORT", label: "Sport" },
   { value: "CASINO", label: "Casino" },
   { value: "MISSIONS", label: "Missions" },
   { value: "ALL", label: "All" },
+  { value: "GOLD", label: "Golden Ball" },
+  { value: "QUARTER_FINAL", label: "⚽ Quarter-final (1/4)" },
+  { value: "SEMI_FINAL", label: "⚽ Semi-final (1/2)" },
+  { value: "FINAL", label: "🏆 Final" },
 ];
 
 export default function WeeklyEditor({ initial, onCancel, onSave }) {
   const seed = useMemo(() => {
     const baseTranslations = initial?.translations || {};
-    const mainLang = LANGS[0].code; // "pt"
 
-    if (!baseTranslations[mainLang]) {
-      baseTranslations[mainLang] = {
+    if (!baseTranslations[LANG]) {
+      baseTranslations[LANG] = {
         title: initial?.title ?? "",
         button: initial?.button ?? "",
         link: initial?.link ?? "",
@@ -43,6 +45,7 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
 
     return {
       ...initial,
+      scratch: !!initial?.scratch,
       translations: baseTranslations,
       buttonColor: initial?.buttonColor || "green",
       category: initial?.category || "ALL",
@@ -51,7 +54,7 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
 
   const [form, setForm] = useState(seed);
   const [saving, setSaving] = useState(false);
-  const [activeLang, setActiveLang] = useState(LANGS[0].code);
+  const activeLang = LANG;
   const [showIconGallery, setShowIconGallery] = useState(false);
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
     const m =
       typeof form.month === "number" ? form.month : new Date().getMonth();
 
-    const url = `/?y=${y}&m=${m}`;
+    const url = monthHref(y, m);
     window.open(url, "_blank", "noopener,noreferrer"); // novi tab
   }
 
@@ -120,6 +123,7 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
         rich: mainT.rich || null,
         richHtml: mainT.richHtml || "",
 
+        scratch: !!form.scratch,
         subtitle: form.subtitle ?? "",
         image: form.image ?? "",
         icon: form.icon ?? "",
@@ -178,26 +182,6 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
       </div>
 
       <div className="mt-6 bg-white border border-neutral-200 rounded-lg shadow-sm p-4 md:p-5 space-y-4">
-        {/* Language tabs + Active + Preview calendar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            {LANGS.map((lng) => (
-              <button
-                key={lng.code}
-                type="button"
-                onClick={() => setActiveLang(lng.code)}
-                className={`px-3 py-1.5 text-xs border-b-2 ${
-                  activeLang === lng.code
-                    ? "border-[#AC1C09] text-[#AC1C09] font-semibold"
-                    : "border-transparent text-neutral-600 hover:text-neutral-900"
-                }`}
-              >
-                {lng.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="flex items-center justify-between gap-4">
           {/* Active toggle */}
           <label className="flex items-center gap-2 text-sm text-neutral-800">
@@ -243,13 +227,21 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
           </button>
         </div>
 
+        {/* Scratch toggle */}
+        <label className="flex items-center gap-2 text-sm text-neutral-800">
+          <input
+            type="checkbox"
+            checked={!!form.scratch}
+            onChange={(e) => setField("scratch", e.target.checked)}
+          />
+          Enable scratch card
+        </label>
+
         {/* Form fields */}
         <div className="grid md:grid-cols-2 gap-4">
           {/* Title (po jeziku) */}
           <label className="block text-sm text-neutral-800">
-            <span className="mb-1 inline-block">
-              Title ({activeLang.toUpperCase()})
-            </span>
+            <span className="mb-1 inline-block">Title</span>
             <input
               className="w-full border border-[#D0D0D0] rounded px-2.5 py-1.5 text-sm"
               value={currentT.title || ""}
@@ -263,9 +255,7 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
         <div className="flex flex-wrap items-end gap-4">
           {/* Button label (po jeziku) */}
           <label className="block text-sm text-neutral-800 flex-1 min-w-[180px]">
-            <span className="mb-1 inline-block">
-              Button label ({activeLang.toUpperCase()})
-            </span>
+            <span className="mb-1 inline-block">Button label</span>
             <input
               className="w-full border border-[#D0D0D0] rounded px-2.5 py-1.5 text-sm"
               value={currentT.button || ""}
@@ -277,9 +267,7 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
 
           {/* Button link (po jeziku) */}
           <label className="block text-sm text-neutral-800 flex-1 min-w-[180px]">
-            <span className="mb-1 inline-block">
-              Button link ({activeLang.toUpperCase()})
-            </span>
+            <span className="mb-1 inline-block">Button link</span>
             <input
               className="w-full border border-[#D0D0D0] rounded px-2.5 py-1.5 text-sm"
               value={currentT.link || ""}
@@ -416,14 +404,12 @@ export default function WeeklyEditor({ initial, onCancel, onSave }) {
 
         {/* Rich text editor */}
         <div className="mt-2">
-          <span className="text-sm text-neutral-800 block mb-1.5">
-            Description ({activeLang.toUpperCase()})
-          </span>
+          <span className="text-sm text-neutral-800 block mb-1.5">Description</span>
           <div className="border border-[#D0D0D0] rounded">
             <RichEditor
               key={activeLang} // remount kad promeniš jezik
               initialJSON={currentT.rich ?? null}
-              placeholder="Upiši sadržaj za ovu nedeljnu promociju…"
+              placeholder="Write the content for this weekly promotion…"
               onChange={({ json, html }) => {
                 setTranslationField(activeLang, "rich", json);
                 setTranslationField(activeLang, "richHtml", html);
