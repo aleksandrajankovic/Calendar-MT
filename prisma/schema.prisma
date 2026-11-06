@@ -81,3 +81,20 @@ model AdminUser {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+model CalendarEvent {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  type      String // view | day_open | scratch | cta
+  year      Int?
+  month     Int? // 0–11, kao u kalendaru
+  day       Int?
+  promoType String? // special | weekly
+  title     String?
+  device    String? // mobile | desktop
+  embedded  Boolean  @default(false) // učitan u iframe-u (na betting sajtu)
+  visitor   String?
+
+  @@index([createdAt])
+  @@index([year, month, day])
+}

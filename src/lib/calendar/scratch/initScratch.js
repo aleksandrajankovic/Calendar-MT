@@ -159,6 +159,9 @@ export function initScratch() {
       markDayOpened(y, m, d);
     }
 
+    // analitika (calendarInteractions) — broji se samo pravo grebanje, ne ponovno otvaranje
+    window.dispatchEvent(new CustomEvent("mb-scratch-revealed"));
+
     hint?.remove();
     hint1?.remove();
 
